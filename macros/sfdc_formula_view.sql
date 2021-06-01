@@ -6,7 +6,7 @@
     )
 }}
 
-{%- set old_formula_fields = dbt_utils.get_column_values(ref('formula_hierarchy'),'field') -%}
+{%- set old_formula_fields = dbt_utils.get_column_values(source('salesforce','fivetran_formula'),'field') -%}
     
     select 
         {{ dbt_utils.star(source('salesforce',join_to_table_first), except=old_formula_fields) }},

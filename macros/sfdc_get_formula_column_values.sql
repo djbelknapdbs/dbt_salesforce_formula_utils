@@ -24,21 +24,50 @@
 
         {%- else -%}
 
-            select
-                {{ key }} as key,
-                case when {{ value }} is null or {{ value }} like '%$%.%'
-                    then 'null_value'
-                    else replace({{ value }},{{ join_to_table ~ '.' }},{{ fivetran_formula.database ~ '.' ~ fivetran_formula.schema ~ '.' ~ join_to_table }})
-                        end as value
-
+          with formulas as (
+            select * 
             from {{ target_relation }}
             where object = '{{ join_to_table }}'
-            group by 1, 2
-            order by max(formula_depth)
+          ), 
 
-            {% if max_records is not none %}
-            limit {{ max_records }}
-            {% endif %}
+          base_formulas as (
+            select f.* 
+            from formulas f
+              left join formulas l on f.sql regexp '.*\\b' || l.field || '\\b.*'
+            where l.field is null
+          ),
+
+          recursive_formulas as (
+            select field, 
+              object,
+              sql,
+              1 as formula_depth
+            from base_formulas
+            
+            union all
+            
+            select formulas.field, 
+              formulas.object,
+              formulas.sql, 
+              formula_depth+1 as formula_depth
+            from formulas
+              inner join recursive_formulas on formulas.sql regexp ('.*\\b' || recursive_formulas.field || '\\b.*')
+          )
+          
+          select
+              {{ key }} as key,
+              case when {{ value }} is null or {{ value }} like '%$%.%'
+                  then 'null_value'
+                  else {{ value }}
+                      end as value
+
+          from recursive_formulas
+          group by 1, 2
+          order by max(formula_depth)
+
+          {% if max_records is not none %}
+          limit {{ max_records }}
+          {% endif %}
 
         {% endif %}
 
