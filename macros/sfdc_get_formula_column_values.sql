@@ -34,7 +34,7 @@
             from {{ target_relation }}
             where object = '{{ join_to_table }}'
             group by 1, 2
-            order by count(*) desc
+            order by max(formula_depth)
 
             {% if max_records is not none %}
             limit {{ max_records }}
