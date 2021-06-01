@@ -26,9 +26,9 @@
 
             select
                 {{ key }} as key,
-                case when {{ value }} is null
+                case when {{ value }} is null or {{ value }} like '%$%.%'
                     then 'null_value'
-                    else {{ value }}
+                    else replace({{ value }},{{ join_to_table ~ '.' }},{{ fivetran_formula.database ~ '.' ~ fivetran_formula.schema ~ '.' ~ join_to_table }})
                         end as value
 
             from {{ target_relation }}
