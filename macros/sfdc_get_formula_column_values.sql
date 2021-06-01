@@ -26,7 +26,7 @@
 
             select
                 {{ key }} as key,
-                case when {{ value }} is null
+                case when {{ value }} is null or {{ value }} like '%$%.%'
                     then 'null_value'
                     else {{ value }}
                         end as value
